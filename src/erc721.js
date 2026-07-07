@@ -918,3 +918,30 @@ export async function fetchAddrAge(rpc, addr) {
     return { archive: true, firstTs: block ? parseInt(block.timestamp, 16) : null };
   } catch { return null; }
 }
+
+// ── 下一块 gas 费预测 (仿 Blocknative) ──
+//   一次 eth_feeHistory 全拿到:
+//   · baseFeePerGas 数组最后一个 = 下一块 base fee (EIP-1559 协议公式算的精确值, 不是猜)
+//   · reward 百分位 = 最近块里实际成交的 priority fee 分布 → "付得比 p% 的人多 ≈ p% 概率上链"
+//   · gasUsedRatio = 网络拥堵度
+export async function fetchGasIntel(rpc) {
+  try {
+    const f = await rpcCall(rpc, "eth_feeHistory", ["0x5", "latest", [10, 30, 50, 75, 95]]);
+    if (!f?.baseFeePerGas?.length) return null;
+    const g = x => Number(BigInt(x || "0x0")) / 1e9;   // wei hex → gwei
+    const nextBase = g(f.baseFeePerGas.at(-1));
+    const congestion = f.gasUsedRatio?.length
+      ? f.gasUsedRatio.reduce((a, b) => a + b, 0) / f.gasUsedRatio.length : null;
+    // 各百分位在 5 块内取平均 → 平滑掉单块抖动; 百分位→概率的映射与 Blocknative 一致取整
+    const PROBS = [70, 80, 90, 95, 99];
+    const nTiers = f.reward?.[0]?.length || 0;
+    const tiers = [];
+    for (let i = 0; i < nTiers; i++) {
+      const vals = f.reward.map(r => g(r[i]));
+      const priority = vals.reduce((a, b) => a + b, 0) / vals.length;
+      // max fee 推荐 = 下块 base × 1.5 + priority (base fee 每块最多 +12.5%, ×1.5 抗 ~3 块连涨)
+      tiers.push({ prob: PROBS[i], priority, max: nextBase * 1.5 + priority });
+    }
+    return { nextBase, congestion, tiers, at: Date.now() };
+  } catch { return null; }
+}

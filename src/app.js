@@ -1,6 +1,6 @@
 // app.js — 主控制器: RPC 池 → 扫链 → 聚合 → 三栏 UI + 连钱包
 import { MintScanner, WsScanner, createScanner } from "./scanner.js";
-import { readNftMeta, fetchImage, fetchDeployInfo, fetchDeployViaEtherscan, fetchAddrAge, analyzeMints, simulateMint, readSeaDrop, fetchLatestMints, decodeCalldata, detectSeaDropByTx, fetchSeaDropSchedule, fetchHolderStats, fetchSocials } from "./erc721.js";
+import { readNftMeta, fetchImage, fetchDeployInfo, fetchDeployViaEtherscan, fetchAddrAge, analyzeMints, simulateMint, readSeaDrop, fetchLatestMints, decodeCalldata, detectSeaDropByTx, fetchSeaDropSchedule, fetchHolderStats, fetchSocials, fetchGasIntel } from "./erc721.js";
 import { MintStore } from "./store.js";
 import { RpcPool } from "./rpcpool.js";
 import { t, setLang, getLang, LANGS, onLangChange } from "./i18n.js";
@@ -1526,6 +1526,74 @@ $("#donate-btn").onclick = () => {
     setTimeout(() => el.classList.remove("copied"), 1400);
     toast(t("donate.copied"));
   };
+};
+
+// ── Gas 侦测: 下一块费用预测 (仿 Blocknative) ──
+//   每 ~12s 一次 eth_feeHistory (走 mid 快道, 一个块一次, 几乎零成本)。
+//   顶栏 chip 显示下块 base fee (按高低变色); 点击弹面板看各概率档位 priority/max。
+let gasIntel = null;
+const gwei = v => v == null ? "—" : v >= 100 ? Math.round(v).toString() : v >= 10 ? v.toFixed(1) : v.toFixed(2);
+function gasLevel(base) { return base < 5 ? "lo" : base < 30 ? "mid" : "hi"; }   // 主网经验阈值
+function paintGasChip() {
+  const chip = $("#gas-chip"), v = $("#gas-chip-v");
+  if (!chip || !v) return;
+  if (!gasIntel) { chip.hidden = true; return; }
+  chip.hidden = false;
+  chip.className = "gas-chip gas-" + gasLevel(gasIntel.nextBase);
+  v.textContent = gwei(gasIntel.nextBase) + " gwei";
+  chip.title = t("gas.chipTip");
+}
+async function refreshGas() {
+  try {
+    const gi = await fetchGasIntel(rpcMid);
+    if (gi) { gasIntel = gi; paintGasChip(); paintGasPanel(); }   // 面板开着就原地刷新
+  } catch {}
+}
+setInterval(refreshGas, 12000);   // 跟着出块节奏
+refreshGas();
+
+// gas 面板 (点 chip 弹出)。paintGasPanel 只在面板已打开时重绘 → 数据到了不用重开。
+function paintGasPanel() {
+  const box = $("#gas-panel-body");
+  if (!box || !gasIntel) return;
+  const gi = gasIntel;
+  // 档位: 概率高的排前 (99% 最可能上链 → 左)
+  const tiers = [...gi.tiers].reverse();
+  const agoS = Math.max(0, Math.floor((Date.now() - gi.at) / 1000));
+  box.innerHTML = `
+    <div class="gasp-base">
+      <span class="gasp-base-chip gas-${gasLevel(gi.nextBase)}"><i class="fa-solid fa-gas-pump"></i> ${t("gas.baseFee")} <b>${gwei(gi.nextBase)} GWEI</b></span>
+      <span class="gasp-cong" title="${t("gas.congTip")}">${t("gas.congestion")}: ${gi.congestion != null ? Math.round(gi.congestion * 100) + "%" : "—"}</span>
+    </div>
+    <div class="gasp-scale"><span>${t("gas.moreLikely")}</span><span class="gasp-line"></span><span>${t("gas.lessLikely")}</span></div>
+    <div class="gasp-tiers">
+      ${tiers.map(x => `
+        <div class="gasp-tier p${x.prob}">
+          <div class="gt-l">${t("gas.priority")}</div>
+          <div class="gt-v">${gwei(x.priority)} <span class="gt-u">GWEI</span></div>
+          <div class="gt-l">${t("gas.maxFee")}</div>
+          <div class="gt-m">${gwei(x.max)}</div>
+          <div class="gt-p">${x.prob}% ${t("gas.probability")}</div>
+        </div>`).join("")}
+    </div>
+    <div class="gasp-foot">
+      <span>${t("gas.updated", { s: agoS })}</span>
+      <span>· ${t("gas.src")}</span>
+    </div>`;
+}
+$("#gas-chip").onclick = () => {
+  let m = $("#gas-modal");
+  if (!m) { m = document.createElement("div"); m.id = "gas-modal"; m.className = "modal"; document.body.appendChild(m); }
+  m.innerHTML = `
+    <div class="modal-card gas-card">
+      <div class="modal-head"><h3><i class="fa-solid fa-gas-pump"></i> ${t("gas.title")}</h3><button class="modal-x" id="gas-close"><i class="fa-solid fa-xmark"></i></button></div>
+      <div id="gas-panel-body"></div>
+    </div>`;
+  m.classList.add("show");
+  paintGasPanel();
+  const close = () => m.classList.remove("show");
+  $("#gas-close").onclick = close;
+  m.onclick = e => { if (e.target === m) close(); };
 };
 function openPrefs() {
   let modal = $("#prefs-modal");

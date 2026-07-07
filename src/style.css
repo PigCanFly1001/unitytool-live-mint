@@ -121,6 +121,32 @@ i.fa-solid,i.fa-brands,i.fa-regular{vertical-align:-1px}
 
 .topbar-right{display:flex;gap:9px;margin-left:auto;align-items:center}
 .tb-sep{width:1px;height:18px;background:var(--grid-2);margin:0 4px}
+/* ── gas chip (下一块费用) + 预测面板 ── */
+.gas-chip{font:600 10px var(--mono);letter-spacing:.02em;padding:4px 9px;border-radius:20px;border:1px solid var(--grid);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;user-select:none;cursor:pointer;transition:filter .12s}
+.gas-chip:hover{filter:brightness(1.15)}
+.gas-chip i{font-size:9px}
+.gas-lo{color:var(--echo);background:var(--echo-dim);border-color:transparent}
+.gas-mid{color:var(--signal);background:var(--signal-dim);border-color:transparent}
+.gas-hi{color:var(--void);background:var(--bad);border-color:transparent}
+.gas-card{width:min(560px,92vw)}
+.gasp-base{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.gasp-base-chip{display:inline-flex;align-items:center;gap:7px;font:600 12px var(--mono);padding:8px 13px;border-radius:9px}
+.gasp-base-chip b{font-size:14px}
+.gasp-cong{font:500 10.5px var(--mono);color:var(--mute)}
+.gasp-scale{display:flex;align-items:center;gap:8px;font:600 9px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.gasp-line{flex:1;height:1px;background:linear-gradient(90deg,var(--echo),var(--signal),var(--bad));opacity:.55}
+.gasp-tiers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.gasp-tier{border:1px solid var(--grid-2);border-radius:9px;padding:9px 8px;text-align:left;background:var(--panel)}
+.gt-l{font:600 8.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+.gt-v{font:700 15px var(--mono);color:var(--ink);margin-bottom:7px}
+.gt-u{font:600 8.5px var(--mono);color:var(--mute)}
+.gt-m{font:600 12px var(--mono);color:var(--mute);margin-bottom:7px}
+.gt-p{font:700 10px var(--mono)}
+.gasp-tier.p99 .gt-p,.gasp-tier.p95 .gt-p{color:var(--echo)}
+.gasp-tier.p90 .gt-p,.gasp-tier.p80 .gt-p{color:var(--signal)}
+.gasp-tier.p70 .gt-p{color:var(--bad)}
+.gasp-foot{display:flex;gap:6px;font:400 10px var(--body);color:var(--faint);margin-top:12px}
+@media (max-width:640px){.gasp-tiers{grid-template-columns:repeat(2,1fr)}}
 /* 顶栏社交/语言图标: 无边框, 紧凑 */
 #lang-btn,#link-x,#link-gh,#donate-btn{border:none!important;background:transparent!important;padding:6px;color:var(--mute)}
 #lang-btn:hover,#link-x:hover,#link-gh:hover,#donate-btn:hover{color:var(--signal)}
