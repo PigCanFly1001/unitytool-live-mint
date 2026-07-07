@@ -1,0 +1,6 @@
+# Vercel 只部署纯前端静态版 — 排除后端和开发文件
+server/
+serve.py
+AGENTS.md
+node_modules/
+*.db

@@ -1,0 +1,14 @@
+{
+  "name": "mint-radar-server",
+  "version": "1.0.0",
+  "description": "Always-on backend for UnityTool Live Mint — 24/7 chain scanner + shared-history API. Zero npm dependencies (Node 22 built-ins only).",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node --experimental-sqlite index.js",
+    "dev": "node --experimental-sqlite --watch index.js"
+  }
+}
